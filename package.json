@@ -11,7 +11,8 @@
   "dependencies": {
     "dotenv": "^8.2.0",
     "dotenv-webpack": "^6.0.0",
-    "googleapis": "^39.2.0",
+    "googleapis": "^67.0.0",
+    "qs": "^6.9.6",
     "tiktok-api": "^0.4.1",
     "webpack": "^4.44.2"
   },
