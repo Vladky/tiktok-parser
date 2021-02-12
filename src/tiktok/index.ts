@@ -1,32 +1,53 @@
-import TikTokAPI, { CommonUserDetails, getRequestParams } from 'tiktok-api'
-import { searchUsers } from './searchUsers'
+import { JSDOM } from 'jsdom'
+import axios from 'axios'
 
-// Required - a method that signs the URL with anti-spam parameters
-// You must provide an implementation yourself to successfully make
-// most requests with this library.
-const signURL = async (url, ts, deviceId) => {
-  const as = process.env.as
-  const cp = process.env.cp
-  const mas = 'anti-spam_3'
-  return `${url}&as=${as}&cp=${cp}&mas=${mas}`
-}
-
-const params = getRequestParams({
-  fp: process.env.fpid,
-  device_id: '6924620579191178758',
-  iid: '6924621186568095494',
-  openudid: 'bf15bf4ee59fa60a'
-})
-
-export const getUserByUrl = async (url: string) => {
-  const userName = url.split('@')[1]
-  const userFromApi = await searchUsers({
-    keyword: userName,
-    count: 1,
-    offset: 0
-  })
-  if (userFromApi.data[0] && userFromApi.data[0].user_list) {
-    return userFromApi.data[0].user_list[0]
+const getInst = (document): string => {
+  const getUsernameFromUrl = (link: string) => {
+    if (link.indexOf('http') === -1) {
+      link = 'htttp://' + link
+    }
+    return new URL(link).pathname.substring(1)
   }
-  return undefined
+  const shareLink = new URLSearchParams(
+    document.querySelector('.share-links > a')?.getAttribute('href') || ''
+  ).get('target')
+  if (/.*(i|I)nstagram\.com*/.test(shareLink)) {
+    return getUsernameFromUrl(shareLink)
+  }
+  const instRegexp = /(instagram|inst|ins|ig|инст|инста|инстаграм): ((?!.*\.\.)(?!.*\.$)[^\W][\w.]{0,29})/
+  const instNick = document
+    .querySelector('.share-desc')
+    ?.textContent.toLowerCase()
+    .match(instRegexp)
+  if (instNick) {
+    return instNick[2]
+  }
+  return ''
+}
+export const getUserByUrl = async (
+  url: string
+): Promise<UserSearchResponse> => {
+  try {
+    const page = await axios.get(url).then(({ data }) => data)
+    if (page.indexOf('captcha.js') > -1) throw Error('Captha')
+
+    const dom = new JSDOM(page)
+
+    const document = dom.window.document
+
+    const followersData = [
+      ...document.querySelectorAll('.count-infos > div')
+    ].reduce((acc, e) => {
+      return {
+        ...acc,
+        [e.querySelector('span').textContent.toLowerCase()]: e.querySelector(
+          'strong'
+        ).textContent
+      }
+    }, {})
+    const inst = getInst(document)
+    return { ...followersData, inst }
+  } catch (e) {
+    console.error('🚀 ~ file: index.ts ~ line 45 ~ e', e)
+  }
 }

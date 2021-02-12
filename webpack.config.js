@@ -1,12 +1,12 @@
 const path = require('path')
 const Dotenv = require('dotenv-webpack')
+
 var nodeExternals = require('webpack-node-externals')
 
 exports.default = {
   target: 'node',
   externals: [nodeExternals()],
   entry: './src/index.ts',
-  devtool: 'source-map',
   output: {
     path: path.resolve(__dirname, 'dist')
   },
